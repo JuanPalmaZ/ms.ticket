@@ -1,0 +1,60 @@
+server:
+  port: 8089 # Puerto asignado exclusivamente para el microservicio de ticket
+
+spring:
+  application:
+    name: ms-ticket # Nombre con el que se registrará en el panel de Eureka
+  
+  # ===================================
+  # Configuración de Rendimiento
+  # ===================================
+  threads:
+    virtual:
+      enabled: true # Aprovecha los hilos virtuales de tu JDK moderno (Java 21)
+  
+  mvc:
+    problemdetails:
+      enabled: false # Desactivado para usar tu GlobalExceptionHandler personalizado
+
+  # ===================================
+  # Conexión a PostgreSQL (NeonTech)
+  # ===================================
+  datasource:
+    url: jdbc:postgresql://ep-twilight-bonus-acsx4dop-pooler.sa-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require
+    username: neondb_owner
+    password: npg_3Mf6SJigsycL
+    driver-class-name: org.postgresql.Driver
+    
+    # Pool de conexiones optimizado para el plan gratuito de Neon
+    hikari:
+      maximum-pool-size: 5
+
+  # ===================================
+  # Configuración de Hibernate / JPA
+  # ===================================
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    hibernate:
+      ddl-auto: update # Creará la tabla 'logs_auditoria_admin' automáticamente
+    show-sql: true # Muestra las consultas SQL en consola para pruebas
+    properties:
+      hibernate:
+        format_sql: true # Formatea el SQL para que sea legible
+
+# ===================================
+# Configuración del Cliente Eureka
+# ===================================
+eureka:
+  client:
+    register-with-eureka: true # Se registra en el servidor central de Juan
+    fetch-registry: true   # Descarga la lista de los otros servicios (clientes, usuarios, productos)
+    service-url:
+      defaultZone: http://localhost:8761/eureka/ # Dirección del servidor Eureka
+  instance:
+    prefer-ip-address: true # Facilita la comunicación interna mediante IP
+
+jwt:
+  # Esta es una clave secreta generada en Hexadecimal (Mínimo 256 bits requeridos por seguridad)
+  secret: 404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970
+  # Tiempo de vida del token en milisegundos (86400000 ms = 1 día)
+  expiration: 86400000
