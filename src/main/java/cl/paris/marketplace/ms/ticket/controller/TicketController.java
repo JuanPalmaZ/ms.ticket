@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -20,16 +21,15 @@ import cl.paris.marketplace.ms.ticket.dto.TicketResponse;
 import cl.paris.marketplace.ms.ticket.service.TicketService;
 import jakarta.validation.Valid;
 
-// Imports de la pauta OpenAPI
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.parameters.RequestBody;
-import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.ExampleObject;
 
-@Tag(name = "Tickets", description = "Gestión de tickets de soporte y disputas en el marketplace")
 @RestController
 @RequestMapping("/api/tickets")
+@Tag(name = "Tickets", description = "Operaciones de gestión y consulta de tickets de disputa")
 public class TicketController {
 
     private final TicketService ticketService;
@@ -38,16 +38,22 @@ public class TicketController {
         this.ticketService = ticketService;
     }
 
-    @Operation(summary = "Abrir un nuevo ticket", description = "Permite a un cliente autenticado abrir una disputa o ticket de soporte asociado a un pedido.")
-    @ApiResponse(responseCode = "201", description = "Ticket creado exitosamente")
-    @ApiResponse(responseCode = "400", description = "Error de formato en el token o datos de entrada inválidos")
-    @ApiResponse(responseCode = "500", description = "Error interno del servidor o usuarioId no encontrado en el token")
-    @RequestBody(description = "Detalles del ticket que se desea abrir")
-    @ExampleObject(value = "{\n  \"pedidoId\": \"3fa85f64-5717-4562-b3fc-2c963f66afa6\",\n  \"asunto\": \"Producto dañado\",\n  \"mensajeInicial\": \"El artículo llegó con una fisura en la parte posterior.\"\n}")
     @PostMapping
     @PreAuthorize("hasRole('CLIENTE')")
+    @Operation(summary = "Abrir un nuevo ticket")
+    @ApiResponse(responseCode = "201", description = "Ticket creado exitosamente")
+    @ApiResponse(responseCode = "400", description = "Error de validación o formato incorrecto")
+    @ApiResponse(responseCode = "500", description = "Error crítico interno")
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(
+        content = @Content(
+            mediaType = "application/json",
+            examples = @ExampleObject(
+                value = "{\n  \"pedidoId\": \"123e4567-e89b-12d3-a456-426614174000\",\n  \"asunto\": \"Producto defectuoso\",\n  \"mensajeInicial\": \"El producto llegó roto en una esquina y solicito reemplazo.\"\n}"
+            )
+        )
+    )
     public ResponseEntity<?> abrirTicket(
-            @Valid @org.springframework.web.bind.annotation.RequestBody TicketRequest request,
+            @Valid @RequestBody TicketRequest request,
             Authentication authentication
     ) {
         try {
@@ -75,37 +81,45 @@ public class TicketController {
         }
     }
 
-    @Operation(summary = "Cambiar estado del ticket", description = "Permite a los roles ADMIN o PROVEEDOR actualizar el estado actual de un ticket por su ID.")
-    @ApiResponse(responseCode = "200", description = "Estado del ticket actualizado exitosamente")
     @PatchMapping("/{id}/estado")
     @PreAuthorize("hasAnyRole('ADMIN', 'PROVEEDOR')") 
+    @Operation(summary = "Cambiar el estado de un ticket")
+    @ApiResponse(responseCode = "200", description = "Estado del ticket actualizado exitosamente")
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(
+        content = @Content(
+            mediaType = "application/json",
+            examples = @ExampleObject(
+                value = "{\n  \"estado\": \"EN_REVISION\"\n}"
+            )
+        )
+    )
     public ResponseEntity<TicketResponse> cambiarEstado(
             @PathVariable UUID id, 
-            @Valid @org.springframework.web.bind.annotation.RequestBody ActualizarEstadoTicketRequest request) {
+            @Valid @RequestBody ActualizarEstadoTicketRequest request) {
         TicketResponse response = ticketService.cambiarEstado(id, request);
         return ResponseEntity.ok(response);
     }
 
-    @Operation(summary = "Listar todos los tickets", description = "Permite al rol ADMIN obtener una lista global con la totalidad de los tickets del sistema.")
-    @ApiResponse(responseCode = "200", description = "Lista completa de tickets obtenida exitosamente")
     @GetMapping
     @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Listar todos los tickets del sistema")
+    @ApiResponse(responseCode = "200", description = "Lista de tickets obtenida correctamente")
     public ResponseEntity<List<TicketResponse>> listarTodos() {
         return ResponseEntity.ok(ticketService.listarTodosLosTickets());
     }
 
-    @Operation(summary = "Listar tickets por cliente", description = "Permite obtener todos los tickets de un cliente específico. Protegido para ADMIN o el propio dueño del token.")
-    @ApiResponse(responseCode = "200", description = "Lista de tickets del cliente obtenida exitosamente")
     @GetMapping("/cliente/{clienteId}")
     @PreAuthorize("hasRole('ADMIN') or (hasRole('CLIENTE') and #clienteId.toString() == authentication.credentials)")
+    @Operation(summary = "Listar tickets por ID de cliente")
+    @ApiResponse(responseCode = "200", description = "Lista de tickets asociada al cliente obtenida correctamente")
     public ResponseEntity<List<TicketResponse>> listarPorCliente(@PathVariable UUID clienteId) {
         return ResponseEntity.ok(ticketService.obtenerTicketsPorCliente(clienteId));
     }
 
-    @Operation(summary = "Listar tickets por vendedor", description = "Permite obtener todos los tickets asociados a un vendedor/proveedor específico. Protegido para ADMIN o el propio proveedor.")
-    @ApiResponse(responseCode = "200", description = "Lista de tickets del vendedor obtenida exitosamente")
     @GetMapping("/vendedor/{vendedorId}")
     @PreAuthorize("hasRole('ADMIN') or (hasRole('PROVEEDOR') and #vendedorId.toString() == authentication.credentials)")
+    @Operation(summary = "Listar tickets por ID de vendedor")
+    @ApiResponse(responseCode = "200", description = "Lista de tickets asociada al vendedor obtenida correctamente")
     public ResponseEntity<List<TicketResponse>> listarPorVendedor(@PathVariable UUID vendedorId) {
         return ResponseEntity.ok(ticketService.obtenerTicketsPorVendedor(vendedorId));
     }
