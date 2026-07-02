@@ -26,6 +26,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 @RestController
 @RequestMapping("/api/tickets")
@@ -45,9 +46,14 @@ public class TicketController {
     @ApiResponse(responseCode = "400", description = "Error de validación o formato incorrecto")
     @ApiResponse(responseCode = "500", description = "Error crítico interno")
     @io.swagger.v3.oas.annotations.parameters.RequestBody(
+        description = "Cuerpo de la carga útil para abrir un ticket",
+        required = true,
         content = @Content(
             mediaType = "application/json",
+            schema = @Schema(implementation = TicketRequest.class),
             examples = @ExampleObject(
+                name = "Ejemplo de Ticket",
+                description = "Ejemplo válido para solicitar un reemplazo",
                 value = "{\n  \"pedidoId\": \"123e4567-e89b-12d3-a456-426614174000\",\n  \"asunto\": \"Producto defectuoso\",\n  \"mensajeInicial\": \"El producto llegó roto en una esquina y solicito reemplazo.\"\n}"
             )
         )
@@ -86,9 +92,14 @@ public class TicketController {
     @Operation(summary = "Cambiar el estado de un ticket")
     @ApiResponse(responseCode = "200", description = "Estado del ticket actualizado exitosamente")
     @io.swagger.v3.oas.annotations.parameters.RequestBody(
+        description = "Cuerpo para actualizar el estado del ticket",
+        required = true,
         content = @Content(
             mediaType = "application/json",
+            schema = @Schema(implementation = ActualizarEstadoTicketRequest.class),
             examples = @ExampleObject(
+                name = "Ejemplo Actualizar Estado",
+                description = "Ejemplo para pasar el ticket a revisión",
                 value = "{\n  \"estado\": \"EN_REVISION\"\n}"
             )
         )
